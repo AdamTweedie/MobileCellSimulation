@@ -23,12 +23,9 @@ public class CellSimulationMMCC {
             gc.start();
             gc.run();
         }
-
+        cell.run();
         for (Channel channel : cell.getCellChannels()) {
             System.out.println(channel.getStatus());
         }
-
-        cell.run();
-
     }
 }

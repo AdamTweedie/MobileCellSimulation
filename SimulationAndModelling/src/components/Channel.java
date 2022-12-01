@@ -34,6 +34,10 @@ public class Channel {
         this.serviceTime = serviceDuration;
     }
 
+    public void setIdleTime(double idleTime) {
+        this.idleTime = idleTime;
+    }
+
     public double getServiceTime() {
         return this.serviceTime;
     }

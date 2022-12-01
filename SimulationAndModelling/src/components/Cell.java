@@ -1,6 +1,5 @@
 package components;
 
-import java.sql.Time;
 import java.util.ArrayList;
 import java.util.Arrays;
 
@@ -15,6 +14,7 @@ public class Cell implements Runnable {
     private boolean running;
     Call nextCall = null;
     private static CellStatus status;
+    private TimeManager time = new TimeManager();
 
     public Cell() { // default constructor
         this.C = 0;
@@ -53,12 +53,16 @@ public class Cell implements Runnable {
 
     @Override
     public void run() {
-        Time time = new Time(0);
         while (running) {
             nextCall = CallHandler.getCurrentCall();
             if ( numOfIdleChannels > 0 ) {
-                System.out.println(nextCall);
-                assignToChannel(nextCall);
+                double interArrivalTime = nextCall.getArrivalTime();
+                time.increaseTime(interArrivalTime);
+                handleChannels(interArrivalTime); // handle events after increase of sim time
+
+                assignToChannel(nextCall); // assign to channels after change in time
+                numOfIdleChannels--;
+                numOfBusyChannels++;
             }
             // TODO: handle time
             try {
@@ -80,10 +84,38 @@ public class Cell implements Runnable {
     }
 
     public Channel[] getCellChannels() {
-        return cellChannels;
+        return this.cellChannels;
     }
 
-    private static void assignToChannel(Call call) {
+    private void handleChannels(double callArrivalTime) {
+        for (Channel cellChannel : this.cellChannels) {
+            double totalTime = time.getSimTime();
+            if (cellChannel.getStatus() == ChannelStatus.BUSY) {
+                if (cellChannel.getEndOfServiceTime() <= totalTime) {
+                    cellChannel.setStatus(ChannelStatus.IDLE);
+                    cellChannel.setIdleTime(totalTime - cellChannel.getEndOfServiceTime());
+                    numOfBusyChannels--;
+                    numOfIdleChannels++;
+                }
+            } else {
+                cellChannel.setIdleTime(cellChannel.getIdleTime() + callArrivalTime);
+            }
+        }
+    }
 
+    private void assignToChannel(Call call) {
+        // next available channel
+        // may want to change to random in future iterations
+        // or assigning to server with highest time idle
+        for (Channel cellChannel : this.cellChannels) {
+            if (cellChannel.getStatus() == ChannelStatus.IDLE) {
+                cellChannel.setStatus(ChannelStatus.BUSY);
+                cellChannel.setCurrentServiceTime(call.getServiceTime());
+                cellChannel.setEndOfServiceTime(time.getSimTime() + call.getServiceTime());
+                // maybe keep this for tracking of total idle team
+                cellChannel.setIdleTime(0);
+                break;
+            }
+        }
     }
 }
