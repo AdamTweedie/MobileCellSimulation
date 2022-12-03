@@ -6,12 +6,16 @@ public class Channel {
     private double serviceTime;
     private double idleTime;
     private double endOfServiceTime;
+    private int id;
+    private int callId;
 
-    public Channel() {
+    public Channel(int channelId) {
+        this.id = channelId;
         this.status = ChannelStatus.IDLE;
         this.serviceTime = 0;
         this.idleTime = 0;
         this.endOfServiceTime = 0;
+        this.callId = 0;
     }
 
     public void setStatus(ChannelStatus status) {
@@ -38,6 +42,10 @@ public class Channel {
         this.idleTime = idleTime;
     }
 
+    public int getId() {
+        return id;
+    }
+
     public double getServiceTime() {
         return this.serviceTime;
     }
@@ -48,5 +56,13 @@ public class Channel {
 
     public double getEndOfServiceTime() {
         return endOfServiceTime;
+    }
+
+    public void setCallId(int callId) {
+        this.callId = callId;
+    }
+
+    public int getCallId() {
+        return callId;
     }
 }
