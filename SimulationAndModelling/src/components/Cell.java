@@ -39,16 +39,8 @@ public class Cell implements Runnable {
 
     private void initializeCellChannelList(Channel[] cellChannels) {
         for (int i = 0; i < cellChannels.length; i++) {
-            cellChannels[i] = new Channel();
+            cellChannels[i] = new Channel(i);
         }
-    }
-
-    public void InitializeCell(int numChannels, double[] frequencyBand) {
-        this.C = numChannels;
-        this.channelStatusList = new ChannelStatus[numChannels];
-        initializeStatusList(this.channelStatusList);
-        this.numOfIdleChannels = numChannels;
-        this.numOfBusyChannels = 0;
     }
 
     @Override
@@ -69,7 +61,7 @@ public class Cell implements Runnable {
                 CallHandler.getNextCall();
             }
             catch (IndexOutOfBoundsException e) {
-                System.out.println("ERROR with CallHandler.getNextCall() :: " + e);
+                //System.out.println("ERROR with CallHandler.getNextCall() :: " + e);
                 running = false;
             }
         }
@@ -92,13 +84,18 @@ public class Cell implements Runnable {
             double totalTime = time.getSimTime();
             if (cellChannel.getStatus() == ChannelStatus.BUSY) {
                 if (cellChannel.getEndOfServiceTime() <= totalTime) {
+                    log("Channel service ended with id:"+cellChannel.getId()
+                            +", duration:"+cellChannel.getServiceTime()
+                            +", end:"+cellChannel.getEndOfServiceTime());
                     cellChannel.setStatus(ChannelStatus.IDLE);
                     cellChannel.setIdleTime(totalTime - cellChannel.getEndOfServiceTime());
                     numOfBusyChannels--;
                     numOfIdleChannels++;
                 }
             } else {
-                cellChannel.setIdleTime(cellChannel.getIdleTime() + callArrivalTime);
+                double newIdleTime = cellChannel.getIdleTime() + callArrivalTime;
+                //log("Channel "+cellChannel.getId()+" idle time increased to "+newIdleTime);
+                cellChannel.setIdleTime(newIdleTime);
             }
         }
     }
@@ -109,6 +106,7 @@ public class Cell implements Runnable {
         // or assigning to server with highest time idle
         for (Channel cellChannel : this.cellChannels) {
             if (cellChannel.getStatus() == ChannelStatus.IDLE) {
+                log("Call "+call.getNumber()+" assigned to Channel "+cellChannel.getId()+" with duration "+call.getServiceTime());
                 cellChannel.setStatus(ChannelStatus.BUSY);
                 cellChannel.setCurrentServiceTime(call.getServiceTime());
                 cellChannel.setEndOfServiceTime(time.getSimTime() + call.getServiceTime());
@@ -117,5 +115,9 @@ public class Cell implements Runnable {
                 break;
             }
         }
+    }
+
+    private static void log(String logText) {
+        System.out.println("[[Cell] " + logText+"]");
     }
 }
