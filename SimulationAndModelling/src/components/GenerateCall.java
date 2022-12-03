@@ -8,41 +8,34 @@ public class GenerateCall implements Runnable {
     private Random random;
     private double averageServiceTime;
     private double arrivalRate;
-    private boolean running;
+    private int numCalls;
 
-    public GenerateCall(double meanServiceTime, double arrivalRate) {
+    public GenerateCall(double meanServiceTime, double arrivalRate, int numberOfCalls) {
         random = new Random();
         this.averageServiceTime = meanServiceTime;
         this.arrivalRate = arrivalRate;
+        this.numCalls = numberOfCalls;
     }
-
 
     @Override
     public void run() {
-
-        int id = 0;
-        while (running) {
-            double lambda = 1 / averageServiceTime;
-            double serviceTime = RandomNumberGenerator.Exponential.getRandom(random, lambda);
-            double eta = 1 / arrivalRate;
-            double interArrivalTime = RandomNumberGenerator.Poisson.getRandom(random, eta);
-
-            if (serviceTime > 0) {
-                log("inter-arrival time " + interArrivalTime + "    call duration " + serviceTime);
-                Call call = new Call(interArrivalTime, serviceTime, id);
-                CallHandler.handleCall(call);
-                id++;
-            } stop();
+        try {
+            int id = 0;
+            for (int i = numCalls; i>0; i--) {
+                double lambda = 1 / averageServiceTime;
+                double serviceTime = RandomNumberGenerator.Exponential.getRandom(random, lambda);
+                double eta = 1 / arrivalRate;
+                double interArrivalTime = RandomNumberGenerator.Poisson.getRandom(random, eta);
+                if (serviceTime > 0) {
+                    log("id:"+id+" inter-arrival time " + interArrivalTime + "    call duration " + serviceTime);
+                    Call call = new Call(interArrivalTime, serviceTime, id);
+                    CallHandler.handleCall(call);
+                    id++;
+                }
+            }
+        } catch (Exception e) {
+            System.out.println(e);
         }
-    }
-
-    public void start() {
-        running = true;
-        new Thread(this).start();
-    }
-
-    public void stop() {
-        running = false;
     }
 
     private void log( String s ) {
