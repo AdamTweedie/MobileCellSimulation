@@ -16,14 +16,14 @@ public class CellSimulationMMCC {
      */
 
     public static void main(String[] args) {
-        GenerateCall gc = new GenerateCall(100, 0.01);
-        Cell cell = new Cell(16, new double[]{0.001, 0.005});
+        GenerateCall gc = new GenerateCall(100, 0.01, 100);
+        gc.run();
 
-        for (int i = 0; i < 5; i++) {
-            gc.start();
-            gc.run();
-        }
+        Cell cell = new Cell(16, new double[]{0.001, 0.005});
         cell.run();
+
+
+
         for (Channel channel : cell.getCellChannels()) {
             System.out.println(channel.getStatus());
         }
