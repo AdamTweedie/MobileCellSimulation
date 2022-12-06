@@ -40,12 +40,15 @@ public class Cell implements Runnable {
     public void run() {
         while (running) {
             Call nextCall = CallHandler.getCurrentCall(); // 100, 56
-            this.totalNewCallArrival++;
-            this.status = CellStatus.CHANNELS_AVAILABLE;
             double interArrivalTime = nextCall.getArrivalTime();
             time.increaseTime(interArrivalTime); // 100
             handleChannels(interArrivalTime);
-            assignToChannel(nextCall);
+            if (numFreeChannels() > 0) {
+                assignToChannel(nextCall);
+                this.totalNewCallArrival++;
+            } else {
+                this.totalNewCallLoss++;
+            }
             this.serverUtilization += setServerUtilization();
             try {
                 CallHandler.getNextCall();
@@ -64,7 +67,15 @@ public class Cell implements Runnable {
         return this.cellChannels;
     }
 
-    private void handleChannels(double callArrivalTime) {
+    public int numFreeChannels() {
+        int count = 0;
+        for (Channel c : this.cellChannels) {
+            if (c.getStatus().equals(ChannelStatus.IDLE)) count++;
+        }
+        return count;
+    }
+
+    public void handleChannels(double callArrivalTime) {
         for (Channel cellChannel : this.cellChannels) {
             double totalTime = time.getSimTime();
             if (cellChannel.getStatus() == ChannelStatus.BUSY) {
@@ -74,15 +85,17 @@ public class Cell implements Runnable {
                     cellChannel.setStatus(ChannelStatus.IDLE);
                     cellChannel.setIdleTime(totalTime - cellChannel.getEndOfServiceTime());
                     time.setTimeNextEvent(Events.EventType.DEPARTURE.toString(), (int) cellChannel.getEndOfServiceTime());
+                    status = CellStatus.CHANNELS_AVAILABLE;
                 }
             } else {
                 double newIdleTime = cellChannel.getIdleTime() + callArrivalTime;
                 cellChannel.setIdleTime(newIdleTime);
+                status = CellStatus.CHANNELS_AVAILABLE;
             }
         }
     }
 
-    private void assignToChannel(Call call) {
+    public void assignToChannel(Call call) {
         // may want to change to random in future iterations
         boolean foundChannel = false;
         for (Channel cellChannel : this.cellChannels) {
@@ -94,12 +107,14 @@ public class Cell implements Runnable {
                 cellChannel.setCurrentServiceTime(call.getServiceTime());
                 cellChannel.setEndOfServiceTime(time.getSimTime() + call.getServiceTime());
                 cellChannel.setCallId(call.getNumber());
+                time.setTimeNextEvent(Events.EventType.ARRIVAL.toString(), (int) time.getSimTime());
                 // maybe keep this for tracking of total idle team
                 cellChannel.setIdleTime(0);
                 break;
             }
         }
         if (!foundChannel) {
+            System.out.println("SHOULDNT HAVE REACHED HERE");
             //Events.log(this.cellId, null, null, time.getSimTime(),
             //        Events.EventType.CELL_AT_CAPACITY);
             time.setTimeNextEvent(Events.EventType.CELL_AT_CAPACITY.toString(), (int) time.getSimTime());
@@ -116,6 +131,22 @@ public class Cell implements Runnable {
             }
         }
         return ((double) count / this.C);
+    }
+
+    public boolean getRunning() {
+        return this.running;
+    }
+
+    public TimeManager getTime() {
+        return this.time;
+    }
+
+    public void incrementTotalNewCallLoss() {
+        this.totalNewCallLoss++;
+    }
+
+    public void incrementTotalNewCallAccepted() {
+        this.totalNewCallArrival++;
     }
 
     public double getServerUtilization() {
